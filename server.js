@@ -17,12 +17,7 @@ const db = new pg.Client({
     host : process.env.POSTGRES_HOST,
     database : process.env.POSTGRES_DATABASE,
     password : process.env.POSTGRES_PASSWORD,
-    connectionString : process.env.POSTGRES_URL
-    /*user : "postgres",
-    host : "localhost",
-    database : "askproject",
-    password : "Iamarationalist",
-    port : 5433*/    
+    connectionString : process.env.POSTGRES_URL   
 });
 
 db.connect(function(err) {
