@@ -87,7 +87,7 @@ app.post("/signUp", async(req, res) => {
 
 app.get("/", async(req, res) => {
     try{
-        const data = await db.query("SELECT * FROM questions");
+        const data = await db.query("SELECT * FROM questions ORDER BY question_id DESC");
         res.send(data.rows);
         console.log(data.rows);
     } catch(error){
@@ -101,8 +101,12 @@ app.post("/ask", async(req, res) => {
         console.log(req.body);
         console.log(req.body.question);
         console.log(req.body.user);
-        const data = await db.query("INSERT INTO questions (question, author) VALUES ($1, $2) RETURNING question_id, question, author", [req.body.question, req.body.user]);
-        res.send(data.rows);
+        if(req.body.question === ""){
+            throw "Question block cannot be empty";
+        } else{
+            const data = await db.query("INSERT INTO questions (question, author) VALUES ($1, $2) RETURNING question_id, question, author", [req.body.question, req.body.user]);
+            res.send(data.rows);
+        }
     } catch(error){
         console.error(error);
         res.sendStatus(500);
@@ -112,7 +116,7 @@ app.post("/ask", async(req, res) => {
 app.get("/ask/:id", async(req, res) => {
     try{
         const id = parseInt(req.params.id);
-        const data = await db.query("SELECT question, questions.author AS q_author, answer, answers.author AS a_author, answer_id FROM questions INNER JOIN answers on questions.question_id = answers.question_id WHERE questions.question_id = $1;", [id]);
+        const data = await db.query("SELECT question, questions.author AS q_author, answer, answers.author AS a_author, answer_id FROM questions INNER JOIN answers on questions.question_id = answers.question_id WHERE questions.question_id = $1 ORDER BY answer_id DESC;", [id]);
         res.send(data.rows);
     } catch(error){
         console.error(error);
@@ -123,25 +127,30 @@ app.get("/ask/:id", async(req, res) => {
 
 app.post("/answer/:id", async(req, res) => {
     try{
-        const id = parseInt(req.params.id);
-        console.log(id);
-        const data = await db.query("SELECT question_id FROM questions WHERE author = $1", [req.body.user]);
-        console.log(data.rows);
-        if(data.rows.length > 0){
-            const result = data.rows.findIndex((row) => {
-                console.log(row.question_id);
-                console.log(id);
-                return row.question_id == id});
-            console.log(result);
-            if(result === -1){
-                try{
-                    const data1 = await db.query("INSERT INTO answers (answer, author, question_id) VALUES ($1, $2, $3) RETURNING answer", [req.body.answer, req.body.user, id]);
-                    res.send(data1.rows);
-                } catch(error){
-                    res.send("You have already answered this question.");
+        if(req.body.answer === ""){
+            throw "Answer block cannot be empty";
+        }
+        else{
+            const id = parseInt(req.params.id);
+            console.log(id);
+            const data = await db.query("SELECT question_id FROM questions WHERE author = $1", [req.body.user]);
+            console.log(data.rows);
+            if(data.rows.length > 0){
+                const result = data.rows.findIndex((row) => {
+                    console.log(row.question_id);
+                    console.log(id);
+                    return row.question_id == id});
+                console.log(result);
+                if(result === -1){
+                    try{
+                        const data1 = await db.query("INSERT INTO answers (answer, author, question_id) VALUES ($1, $2, $3) RETURNING answer", [req.body.answer, req.body.user, id]);
+                        res.send(data1.rows);
+                    } catch(error){
+                        res.send("You have already answered this question.");
+                    }
+                } else{
+                    res.send("Sorry, You cannot answer your own question.");
                 }
-            } else{
-                res.send("Sorry, You cannot answer your own question.");
             }
         }
     } catch(error){
@@ -163,9 +172,13 @@ app.get("/comment/:id", async(req, res) => {
 
 app.post("/comment/:id", async(req, res) => {
     try{
-        const id = parseInt(req.params.id);
-        console.log(id);
-        await db.query("INSERT INTO feedback (feedback, author, answer_id) VALUES ($1, $2, $3)", [req.body.comment, req.body.user, id]);
+        if(request.body.comment === ""){
+            throw "Comment block cannot be empty";
+        } else{
+            const id = parseInt(req.params.id);
+            console.log(id);
+            await db.query("INSERT INTO feedback (feedback, author, answer_id) VALUES ($1, $2, $3)", [req.body.comment, req.body.user, id]);
+        }
     } catch(error){
         console.error(error);
         res.sendStatus(500);
